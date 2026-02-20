@@ -208,11 +208,25 @@ class QuantumRunner:
         pm = generate_preset_pass_manager(optimization_level=1, backend=self.backend)
         self.isa_circuit = pm.run(self.full_qc)
         
-        if self.cfg.use_zne:
-            self.isa_folded_3 = pm.run(self.folded_qc_3)
-            self.isa_folded_5 = pm.run(self.folded_qc_5)
+        def run(self, fourier_params: np.ndarray) -> Tuple[float, float]:
+        physical_params = self.get_fourier_bindings(fourier_params)
+        
+        bind_dict = {}
+        for i in range(self.cfg.depth):
+            bind_dict[self.gamma_params[i]] = physical_params[i]
+            bind_dict[self.beta_params[i]] = physical_params[self.cfg.depth + i]
+           base_vals = [bind_dict[p] for p in self.isa_circuit.parameters]
+        cvar_s1, vr_s1 = self._execute_circuit(self.isa_circuit, base_vals)
+               if self.cfg.use_zne:
+            fold_vals_3 = [bind_dict[p] for p in self.isa_folded_3.parameters]
+            cvar_s3, _ = self._execute_circuit(self.isa_folded_3, fold_vals_3)
             
-        self.sampler = BackendSamplerV2(backend=self.backend)
+            fold_vals_5 = [bind_dict[p] for p in self.isa_folded_5.parameters]
+            cvar_s5, _ = self._execute_circuit(self.isa_folded_5, fold_vals_5)
+            zne_cvar = (15/8) * cvar_s1 - (10/8) * cvar_s3 + (3/8) * cvar_s5
+            return float(zne_cvar), vr_s1
+            
+        return float(cvar_s1), vr_s1
 
     def _build_ansatz(self):
         """Hardware-Aware Linear XY-Mixer."""
