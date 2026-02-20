@@ -156,10 +156,6 @@ class NoiseModelFactory:
             
         return noise_model
 class ReadoutMitigator:
-    """
-    Tensor-based Readout Error Mitigation (Pseudo-M3).
-    Inverts the measurement confusion matrix efficiently to correct systematic bias.
-    """
     def __init__(self, n_qubits: int, p10: float, p01: float):
         self.n_qubits = n_qubits
         M = np.array([
